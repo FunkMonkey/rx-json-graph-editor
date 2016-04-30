@@ -1,1 +1,1 @@
-## desktop-analyzer
+## rx-json-graph-editor

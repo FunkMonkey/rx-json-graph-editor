@@ -1,5 +1,9 @@
 
 import cytoscape from 'cytoscape';
+import cydagre from 'cytoscape-dagre';
+import dagre from 'dagre';
+import beautify from 'js-beautify';
+cydagre( cytoscape, dagre ); // register extension
 
 export default function renderGraph( container, elements ) {
   return cytoscape({
@@ -13,9 +17,17 @@ export default function renderGraph( container, elements ) {
         selector: 'node[value]',
         style: {
           'background-color': '#666',
-          'label': 'data(value.operator.operator)',
+          'label': ( el ) => {
+            const value = el.data().value;
+            const opName = value.operator;
+            const args = value.args;
+
+            return beautify( `${opName}( ${args} )` )
+          },
           'text-halign': 'right',
-          'text-valign': 'center'
+          'text-valign': 'center',
+          'border-width': '5px',
+          'border-color': '#fff'
         }
       },
       {
@@ -41,17 +53,16 @@ export default function renderGraph( container, elements ) {
           'line-color': '#ccc',
           'target-arrow-color': '#ccc',
           'target-arrow-shape': 'triangle',
-          'label': 'data(value.index)',
-          'text-background-color': '#666',
+          'label': 'data(value)',
+          'text-background-opacity': '1',
+          'text-background-color': '#ccc',
           'text-background-shape': 'roundrectangle'
         }
       }
     ],
 
     layout: {
-      name: 'breadthfirst',
-      directed: true,
-      spacingFactor: 0.5,
+      name: 'dagre',
       fit: false
     }
 
