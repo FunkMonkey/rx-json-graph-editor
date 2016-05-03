@@ -1,106 +1,76 @@
-import rxJSONGraph from 'rx-json-graph';
+import Rx from 'rx';
+import CopalCore from '@copal/core';
+
 import renderGraph from './render-graph';
 import GraphlibCytoscapeConverter from './graphlib-cytoscape-converter';
-import TestGraphlibGraph from './test/graphlib-graph';
-import testRunInContext from './test/run-in-context';
 
-import SimpleJSONGraph from './test/simple-json-graph';
-import PipegroupsJSONGraph from './test/pipegroups-json-graph';
-import ComponentsJSONGraph from './test/components-json-graph';
 import ComponentsMacrosJSONGraph from './test/components-macros-json-graph';
 
-const { transformers } = rxJSONGraph;
+function addCompoundInfo( elements ) {
+  const componentCompounds = {};
+  const pgCompounds = {};
 
-export default function entry () {
-  // const glibGraph = rxJSONGraph.convertToGraph( SimpleJSONGraph,
-  //   [transformers.graph.nodesFromDict],
-  //   [transformers.node.valueFromArray] );
+  elements.forEach( el => {
+    if ( el.group !== 'nodes' )
+      return;
 
-  // const glibGraph = rxJSONGraph.convertToGraph( PipegroupsJSONGraph,
-  //   [transformers.graph.pipegroups],
-  //   [transformers.node.valueFromArray,
-  //    transformers.node.appendOperatorToID,
-  //    transformers.node.pipegroups] );
+    const component = el.data.value.component;
+    const pipegroup = el.data.value.pipegroup;
+    const pgID = el.data.value.pipegroupID;
+    componentCompounds[ component ] = component;
+    pgCompounds[ pgID ] = { pipegroupID: pgID, pipegroup, component };
+    el.data.parent = pgID;
+  } );
 
-  // const glibGraph = rxJSONGraph.convertToGraph( ComponentsJSONGraph,
-  //   [transformers.graph.components,
-  //    transformers.graph.pipegroups],
-  //   [transformers.node.valueFromArray,
-  //    transformers.node.appendOperatorToID,
-  //    transformers.node.components,
-  //    transformers.node.pipegroups] );
+  const componentNodes = Object.getOwnPropertyNames( componentCompounds ).map( groupName => ( {
+    group: 'nodes',
+    data: {
+      id: groupName,
+      name: groupName
+    }
+  } ) );
 
-  const glibGraph = rxJSONGraph.convertToGraph( ComponentsMacrosJSONGraph,
-    [transformers.graph.components,
-     transformers.graph.componentMacros,
-     transformers.graph.pipegroups],
-    [transformers.node.valueFromArray,
-     transformers.node.appendOperatorToID,
-     transformers.node.components,
-     transformers.node.pipegroups] );
+  const pgNodes = Object.getOwnPropertyNames( pgCompounds ).map( prop => ( {
+    group: 'nodes',
+    data: {
+      id: pgCompounds[prop].pipegroupID,
+      name: pgCompounds[prop].pipegroup,
+      parent: pgCompounds[prop].component
+    }
+  } ) );
 
-
-  // CALLING
-  // testRunInContext( glibGraph );
-
-  // RENDERING
-  // const graphlibJSON = graphlib.json.write( TestGraphlibGraph );
-  // const cytoJSON = GraphlibCytoscapeConverter.toCytoscape( TestGraphlibGraph );
-  const cytoJSON = GraphlibCytoscapeConverter.toCytoscape( glibGraph );
-  console.log( glibGraph, cytoJSON );
-  // const cytoElementsWithCompounds = addCompoundInfo( cytoJSON );
-  renderGraph( document.getElementById( 'graph' ), cytoJSON );
-  //
-  // // Testing
-  // const context = new ExampleContext();
-  // const rxGraph = rxGraphlibGraph.create( glibGraph, context.insertOperator.bind( context ) );
-  // console.log( rxGraph );
+  return elements.concat( pgNodes, componentNodes );
 }
 
-// function addCompoundInfo( elements ) {
-//
-//   const compounds = {};
-//
-//   elements.forEach( el => {
-//     if( el.group !== 'nodes' )
-//       return;
-//
-//     const parent = el.data.value.parent.name;
-//     el.data.parent = parent;
-//     compounds[ parent ] = parent;
-//   } );
-//
-//   const groupNodes = Object.getOwnPropertyNames( compounds ).map( groupName => ({
-//     group: 'nodes',
-//     data: {
-//       id: groupName,
-//       name: groupName
-//     }
-//   }) );
-//
-//   return elements.concat( groupNodes );
-// }
+const drivers = {
+  profileSettings: {
+    get( ) {
+      return Rx.Observable.just( {
+        extensions: {
+          enabled: []
+        }
+      } );
+    }
+  },
+  extensions: {
+    get() {
+      return Rx.Observable.just( () => {} );
+    }
+  }
+};
 
+export default function entry() {
+  const core = new CopalCore( drivers );
+  const init$ = core.init()
+    .concat( Rx.Observable.just( 1 ) )
+    .do( () => {
+      const exec = core.executeCommandConfig( ComponentsMacrosJSONGraph );
 
-// class ExampleContext {
-//   constructor( opMap ) {
-//     this.operators = opMap;
-//   }
-//
-//   getOperatorByConfig( opConfig ) {
-//     return this.opMap[ opConfig.name ].operator;
-//   }
-//
-//   getOperatorAndArguments( opConfig, extraSources ) {
-//     return {
-//       operator: this.getOperatorByConfig( opConfig ),
-//       args: [ extraSources ]
-//     };
-//   }
-//
-//   insertOperator( opConfig, sources ) {
-//     return rxGraphlibGraph.insertUsingLet(
-//       ( conf, xSources ) => this.getOperatorAndArguments( conf, xSources ),
-//       opConfig, sources );
-//   }
-// }
+      const cytoJSON = GraphlibCytoscapeConverter.toCytoscape( exec.graph );
+      console.log( exec.graph, cytoJSON );
+      const cytoElementsWithCompounds = addCompoundInfo( cytoJSON );
+      renderGraph( document.getElementById( 'graph' ), cytoElementsWithCompounds );
+    } );
+
+  init$.subscribe();
+}

@@ -27,7 +27,8 @@ export default function renderGraph( container, elements ) {
           'text-halign': 'right',
           'text-valign': 'center',
           'border-width': '5px',
-          'border-color': '#fff'
+          'border-color': '#fff',
+          'border-opacity': 0
         }
       },
       {

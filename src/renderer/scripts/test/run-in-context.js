@@ -12,7 +12,7 @@ function insertOperator( id, operatorConfig, sources ) {
   const args = operatorConfig.args;
 
   // differentiate between static and instance operators
-  if( operatorName.startsWith( 'Observable.' ) ) {
+  if ( operatorName.startsWith( 'Observable.' ) ) {
     operatorName = operatorName.substr( 11 );
 
     // passing the sources (for 'merge', 'concat', etc.)
@@ -22,10 +22,9 @@ function insertOperator( id, operatorConfig, sources ) {
     const restSources = sources.splice( 1 );
     return source[ operatorName ]( ...restSources, ...args );
   }
-
 }
 
-export default function( graph ) {
+export default function ( graph ) {
   // const topsortedNodes = reactiveGraph.getTopsortedNodes( graph );
   // reactiveGraph.connectRxOperators( topsortedNodes, insertOperator );
 

@@ -11,7 +11,7 @@ export default {
         'take5': [
           [ null, 'Observable.interval', 500],
           [ null, 'map', x => 'A' + x ],
-          { macro: "testMacro" },
+          { macro: 'testMacro' },
           [ null, 'take', 5]
         ]
       }
@@ -24,7 +24,7 @@ export default {
         ],
         'result': [
           [ ['A::take5', 'B_map'], 'Observable.concat'],
-          { macro: "A::testMacro" },
+          { macro: 'A::testMacro' },
           [ null, 'subscribeOnNext', function(x) { console.log(x) } ]
         ]
       }
